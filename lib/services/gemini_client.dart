@@ -52,10 +52,11 @@ class GeminiClient {
         ],
       }),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError(
         'Gemini research failed ${response.statusCode}: ${response.body}',
       );
+    }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final candidates = data['candidates'] as List? ?? const [];
     final content = candidates.isNotEmpty
@@ -80,7 +81,7 @@ class GeminiClient {
         if (web == null) continue;
         final url = web['uri'] as String?;
         final title = web['title'] as String?;
-        if (url != null && title != null)
+        if (url != null && title != null) {
           sources.add(
             SourceRecord(
               title: title,
@@ -88,6 +89,7 @@ class GeminiClient {
               snippet: web['snippet'] as String?,
             ),
           );
+        }
       }
     }
     return GeminiResearchResult(text: text, sources: sources);
@@ -119,10 +121,11 @@ class GeminiClient {
         ],
       }),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError(
         'Gemini image search failed ${response.statusCode}: ${response.body}',
       );
+    }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final results = <GeminiImageResult>[];
     final seen = <String>{};
@@ -162,7 +165,7 @@ class GeminiClient {
                 }
                 if (results.length < maxCount) {
                   final key = base64Encode(bytes.take(64).toList());
-                  if (seen.add(key))
+                  if (seen.add(key)) {
                     results.add(
                       GeminiImageResult(
                         bytes: bytes,
@@ -171,6 +174,7 @@ class GeminiClient {
                         title: query,
                       ),
                     );
+                  }
                 }
                 if (results.length >= maxCount) return results;
               }
@@ -190,8 +194,9 @@ class GeminiClient {
         final source = item['url'] ?? item['source'];
         if (source is String &&
             source.startsWith('http') &&
-            !sources.contains(source))
+            !sources.contains(source)) {
           sources.add(source);
+        }
       }
     }
     return sources;

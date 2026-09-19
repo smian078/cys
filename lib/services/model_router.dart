@@ -18,18 +18,20 @@ class ModelRouter {
     required bool forceImage,
     required String selectedModel,
   }) {
-    if (forceImage || _isImageIntent(prompt))
+    if (forceImage || _isImageIntent(prompt)) {
       return const ModelRoute(
         model: ModelIds.geminiImage,
         useWeb: false,
         useImages: true,
       );
-    if (forceWeb || _isWebIntent(prompt))
-      return ModelRoute(
+    }
+    if (forceWeb || _isWebIntent(prompt)) {
+      return const ModelRoute(
         model: ModelIds.geminiResearch,
         useWeb: true,
         useImages: false,
       );
+    }
     return ModelRoute(model: selectedModel, useWeb: false, useImages: false);
   }
 

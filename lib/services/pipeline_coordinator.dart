@@ -1,3 +1,6 @@
+// The public constructor intentionally retains descriptive dependency names.
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:async';
 import 'dart:convert';
 import '../app.dart';
@@ -73,7 +76,9 @@ class PipelineCoordinator {
           );
           research = result.text;
           sources = result.sources;
-          for (final source in sources) yield SourceDelta(source.toJson());
+          for (final source in sources) {
+            yield SourceDelta(source.toJson());
+          }
         } catch (e) {
           yield StreamError('Web research failed: $e');
         }
@@ -187,8 +192,9 @@ class PipelineCoordinator {
           if (event.id != null) acc.id = event.id;
           if (event.name != null) acc.name = event.name;
           if (event.arguments != null) acc.arguments.write(event.arguments!);
-          if (acc.name != null && acc.arguments.isNotEmpty)
+          if (acc.name != null && acc.arguments.isNotEmpty) {
             toolArgumentsReady = true;
+          }
           yield event;
         } else if (event is StreamFinished) {
           finished = event;
@@ -284,9 +290,12 @@ class PipelineCoordinator {
       temperature: 0.6,
       topP: 0.95,
     )) {
-      if (event is TextDelta) out.write(event.text);
-      if (event is StreamError)
+      if (event is TextDelta) {
+        out.write(event.text);
+      }
+      if (event is StreamError) {
         out.write('Attachment analysis error: ${event.message}');
+      }
     }
     return out.toString();
   }

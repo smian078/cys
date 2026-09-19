@@ -31,7 +31,7 @@ class NimClient {
       'stream': true,
       'temperature': temperature,
       'top_p': topP,
-      if (seed != null) 'seed': seed,
+      'seed': ?seed,
       'chat_template_kwargs': chatTemplate,
       'max_tokens': 8192,
       if (tools.isNotEmpty) 'tools': tools,
@@ -98,11 +98,13 @@ class NimClient {
           final delta = (choice?['delta'] as Map?)?.cast<String, dynamic>();
           if (delta != null) {
             final content = delta['content'];
-            if (content is String && content.isNotEmpty)
+            if (content is String && content.isNotEmpty) {
               yield TextDelta(content);
+            }
             final reasoning = delta['reasoning_content'] ?? delta['reasoning'];
-            if (reasoning is String && reasoning.isNotEmpty)
+            if (reasoning is String && reasoning.isNotEmpty) {
               yield ReasoningDelta(reasoning);
+            }
             final tc = delta['tool_calls'];
             if (tc is List) {
               for (var i = 0; i < tc.length; i++) {
