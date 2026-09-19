@@ -18,7 +18,9 @@ void main() {
           size: 10,
         ),
       ],
-      sources: [SourceRecord(title: 'Example', url: 'https://example.com')],
+      sources: [
+        const SourceRecord(title: 'Example', url: 'https://example.com'),
+      ],
     );
     final copy = ChatMessage.fromJson(original.toJson());
     expect(copy.content, 'hello');
