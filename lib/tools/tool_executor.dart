@@ -12,7 +12,7 @@ class ToolExecutor {
         if (wrapper is Map &&
             wrapper['tool'] is String &&
             wrapper['arguments'] is Map) {
-          return execute(
+          return await execute(
             wrapper['tool'] as String,
             jsonEncode(wrapper['arguments']),
           );
