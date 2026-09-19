@@ -10,11 +10,16 @@ class CystemServices {
   CystemServices._();
   static final instance = CystemServices._();
 
-  late final AttachmentService attachmentService = AttachmentService(LocalDb.instance);
+  late final AttachmentService attachmentService = AttachmentService(
+    LocalDb.instance,
+  );
   late final AndroidBridge android = AndroidBridge();
   late final ToolRegistry registry = ToolRegistry()
     ..register(PhoneDeviceInfoTool(android))
     ..register(OpenPhoneAppTool(android));
   late final ToolExecutor toolExecutor = ToolExecutor(registry);
-  late final PipelineCoordinator pipeline = PipelineCoordinator(attachments: attachmentService, tools: toolExecutor);
+  late final PipelineCoordinator pipeline = PipelineCoordinator(
+    attachments: attachmentService,
+    tools: toolExecutor,
+  );
 }
