@@ -44,11 +44,12 @@ class OpenPhoneAppTool implements CystemTool {
       'com.google.android.dialer',
       'com.google.android.apps.messaging',
     };
-    if (!allow.contains(package))
+    if (!allow.contains(package)) {
       return {
         'ok': false,
         'error': 'Package is not in the supported allowlist.',
       };
+    }
     final opened = await bridge.openApp(package);
     return {'ok': opened};
   }
