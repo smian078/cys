@@ -130,11 +130,12 @@ class _SettingsBodyState extends State<_SettingsBody> {
                     onPressed: () async {
                       await SecureStore.instance.deleteNvidia();
                       await SecureStore.instance.deleteGemini();
-                      if (mounted)
+                      if (mounted) {
                         setState(() {
                           nvidia.clear();
                           gemini.clear();
                         });
+                      }
                     },
                     child: const Text('REMOVE KEYS'),
                   ),
@@ -465,7 +466,7 @@ class _AccentPicker extends StatelessWidget {
                   color: color,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: value.value == color.value
+                    color: value.toARGB32() == color.toARGB32()
                         ? Colors.white
                         : Colors.transparent,
                     width: 2,
