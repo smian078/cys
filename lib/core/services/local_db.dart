@@ -96,14 +96,18 @@ class LocalDb {
       for (final table in ['attachments', 'messages', 'memories', 'chats']) {
         await txn.delete(table);
       }
-      for (final row in (data['chats'] as List? ?? const []))
+      for (final row in (data['chats'] as List? ?? const [])) {
         await txn.insert('chats', Map<String, Object?>.from(row as Map));
-      for (final row in (data['messages'] as List? ?? const []))
+      }
+      for (final row in (data['messages'] as List? ?? const [])) {
         await txn.insert('messages', Map<String, Object?>.from(row as Map));
-      for (final row in (data['memories'] as List? ?? const []))
+      }
+      for (final row in (data['memories'] as List? ?? const [])) {
         await txn.insert('memories', Map<String, Object?>.from(row as Map));
-      for (final row in (data['attachments'] as List? ?? const []))
+      }
+      for (final row in (data['attachments'] as List? ?? const [])) {
         await txn.insert('attachments', Map<String, Object?>.from(row as Map));
+      }
     });
   }
 
