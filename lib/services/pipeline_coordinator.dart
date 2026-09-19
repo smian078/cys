@@ -51,6 +51,8 @@ class PipelineCoordinator {
     required String? nvidiaKey,
     required String? geminiKey,
   }) async* {
+    final attachments = _attachments;
+    final tools = _tools;
     final route = _router.route(
       prompt: request.message,
       forceWeb: request.forceWeb,
@@ -83,10 +85,10 @@ class PipelineCoordinator {
           );
           research =
               'Image search returned ${images.length} image result(s).\n';
-          if (_attachments != null) {
+          if (attachments != null) {
             for (var i = 0; i < images.length; i++) {
               final image = images[i];
-              final saved = await _attachments!.persistBytes(
+              final saved = await attachments.persistBytes(
                 image.bytes,
                 name: 'image_${i + 1}.png',
                 mimeType: image.mimeType,
@@ -112,12 +114,12 @@ class PipelineCoordinator {
     }
 
     final analyzedAttachments = <Map<String, dynamic>>[];
-    if (_attachments != null && request.attachments.isNotEmpty) {
+    if (attachments != null && request.attachments.isNotEmpty) {
       for (final attachment in request.attachments) {
-        final context = await _attachments!.buildContext(attachment);
+        final context = await attachments.buildContext(attachment);
         final analysis = await _analyzeAttachment(
           context: context,
-          apiKey: nvidiaKey!,
+          apiKey: nvidiaKey,
           baseUrl: request.settings.nvidiaBaseUrl,
           effort: request.settings.reasoningEffort,
         );
@@ -157,9 +159,9 @@ class PipelineCoordinator {
     }
     messages.add({'role': 'user', 'content': request.message});
 
-    final toolDefinitions = _tools == null
+    final toolDefinitions = tools == null
         ? <Map<String, dynamic>>[]
-        : _tools!.registry.openAiDefinitions();
+        : tools.registry.openAiDefinitions();
     final baseUrl = request.settings.nvidiaBaseUrl.replaceFirst(
       RegExp(r'/$'),
       '',
@@ -195,7 +197,7 @@ class PipelineCoordinator {
         }
       }
 
-      if (toolArgumentsReady && _tools != null) {
+      if (toolArgumentsReady && tools != null) {
         final assistantCalls = pendingTools.entries
             .where((e) => e.value.name != null)
             .map(
@@ -221,7 +223,7 @@ class PipelineCoordinator {
         for (final entry in pendingTools.entries.where(
           (e) => e.value.name != null,
         )) {
-          final result = await _tools.execute(
+          final result = await tools.execute(
             entry.value.name!,
             entry.value.arguments.toString(),
           );

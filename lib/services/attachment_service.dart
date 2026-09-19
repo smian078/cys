@@ -16,13 +16,10 @@ class AttachmentService {
   final _uuid = const Uuid();
 
   Future<List<ChatAttachment>> pickFiles() async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      withData: false,
-    );
-    if (result == null) return [];
+    final files = await FilePicker.pickFiles();
+    if (files.isEmpty) return [];
     return Future.wait(
-      result.files
+      files
           .where((f) => f.path != null)
           .map((f) => persist(File(f.path!), displayName: f.name)),
     );
