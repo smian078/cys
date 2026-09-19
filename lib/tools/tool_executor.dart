@@ -9,8 +9,13 @@ class ToolExecutor {
     try {
       if (name == 'cystem_tools') {
         final wrapper = jsonDecode(argumentsJson);
-        if (wrapper is Map && wrapper['tool'] is String && wrapper['arguments'] is Map) {
-          return execute(wrapper['tool'] as String, jsonEncode(wrapper['arguments']));
+        if (wrapper is Map &&
+            wrapper['tool'] is String &&
+            wrapper['arguments'] is Map) {
+          return execute(
+            wrapper['tool'] as String,
+            jsonEncode(wrapper['arguments']),
+          );
         }
       }
       final args = registry.validateInvocation(name, argumentsJson);
