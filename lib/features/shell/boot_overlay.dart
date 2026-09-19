@@ -29,10 +29,12 @@ class _BootOverlayState extends State<BootOverlay>
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor.withOpacity(.96),
+          color: Theme.of(
+            context,
+          ).scaffoldBackgroundColor.withValues(alpha: .96),
           child: AnimatedBuilder(
             animation: controller,
-            builder: (_, __) => CustomPaint(
+            builder: (_, _) => CustomPaint(
               painter: _BootPainter(controller.value),
               child: Center(
                 child: Column(
@@ -81,13 +83,13 @@ class _BootPainter extends CustomPainter {
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
-      ..color = Colors.white.withOpacity(.18);
+      ..color = Colors.white.withValues(alpha: .18);
     for (var i = 0; i < 7; i++) {
       final radius = 50 + i * 34 + t * 16;
       canvas.drawCircle(center, radius, ringPaint);
     }
 
-    final rayPaint = Paint()..color = Colors.white.withOpacity(.20);
+    final rayPaint = Paint()..color = Colors.white.withValues(alpha: .20);
     for (var i = 0; i < 12; i++) {
       final angle = i * pi / 6 + t * pi;
       final radius = 50.0 + i * 22;

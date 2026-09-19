@@ -184,7 +184,7 @@ class _SystemDrawerState extends ConsumerState<SystemDrawer> {
     final scheme = Theme.of(context).colorScheme;
 
     return Drawer(
-      backgroundColor: scheme.surface.withOpacity(.94),
+      backgroundColor: scheme.surface.withValues(alpha: .94),
       child: SafeArea(
         child: Column(
           children: [
