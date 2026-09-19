@@ -58,8 +58,9 @@ class _CystemShellState extends ConsumerState<CystemShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final enabled = ref.read(settingsProvider).biometricLock;
-    if (state == AppLifecycleState.paused && enabled)
+    if (state == AppLifecycleState.paused && enabled) {
       setState(() => locked = true);
+    }
     if (state == AppLifecycleState.resumed && locked && enabled) _unlock();
   }
 
@@ -130,7 +131,7 @@ class SettingsController extends ChangeNotifier {
   Future<void> _load() async {
     final p = await SharedPreferences.getInstance();
     themeMode = ThemeMode.values[p.getInt('themeMode') ?? ThemeMode.dark.index];
-    accent = Color(p.getInt('accent') ?? accent.value);
+    accent = Color(p.getInt('accent') ?? accent.toARGB32());
     biometricLock = p.getBool('biometricLock') ?? false;
     memoryEnabled = p.getBool('memoryEnabled') ?? true;
     systemInstructions = p.getString('systemInstructions') ?? '';
@@ -144,17 +145,18 @@ class SettingsController extends ChangeNotifier {
   Future<void> _save() async {
     final p = await SharedPreferences.getInstance();
     await p.setInt('themeMode', themeMode.index);
-    await p.setInt('accent', accent.value);
+    await p.setInt('accent', accent.toARGB32());
     await p.setBool('biometricLock', biometricLock);
     await p.setBool('memoryEnabled', memoryEnabled);
     await p.setString('systemInstructions', systemInstructions);
     await p.setString('nvidiaBaseUrl', nvidiaBaseUrl);
     await p.setString('model', model);
     await p.setString('reasoningEffort', reasoningEffort);
-    if (seed == null)
+    if (seed == null) {
       await p.remove('seed');
-    else
+    } else {
       await p.setInt('seed', seed!);
+    }
   }
 
   void updateTheme(ThemeMode mode) {
