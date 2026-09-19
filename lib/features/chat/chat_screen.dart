@@ -48,7 +48,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     _startChat();
-    shareSubscription = CystemServices.instance.android.sharedPayloads.listen(_consumeShare);
+    shareSubscription = CystemServices.instance.android.sharedPayloads.listen(
+      _consumeShare,
+    );
   }
 
   Future<void> _startChat() async {
@@ -77,7 +79,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           chatId: id,
           role: MessageRole.values.byName(r['role'] as String),
           content: r['content'] as String,
-          createdAt: DateTime.fromMillisecondsSinceEpoch(r['created_at'] as int),
+          createdAt: DateTime.fromMillisecondsSinceEpoch(
+            r['created_at'] as int,
+          ),
         );
       }
     }).toList();
@@ -176,67 +180,84 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     active = CystemServices.instance.pipeline
         .run(request, nvidiaKey: nvidia, geminiKey: gemini)
-        .listen((event) async {
-      if (!mounted) return;
-      if (event is TextDelta) {
-        assistant.content += event.text;
-      } else if (event is ReasoningDelta) {
-        assistant.reasoning += event.text;
-      } else if (event is SourceDelta) {
-        assistant.sources.add(
-          SourceRecord(
-            title: event.source['title'] as String? ?? 'Source',
-            url: event.source['url'] as String? ?? '',
-            snippet: event.source['snippet'] as String?,
-            date: event.source['date'] as String?,
-          ),
+        .listen(
+          (event) async {
+            if (!mounted) return;
+            if (event is TextDelta) {
+              assistant.content += event.text;
+            } else if (event is ReasoningDelta) {
+              assistant.reasoning += event.text;
+            } else if (event is SourceDelta) {
+              assistant.sources.add(
+                SourceRecord(
+                  title: event.source['title'] as String? ?? 'Source',
+                  url: event.source['url'] as String? ?? '',
+                  snippet: event.source['snippet'] as String?,
+                  date: event.source['date'] as String?,
+                ),
+              );
+            } else if (event is AttachmentDelta) {
+              assistant.attachments.add(event.attachment);
+            } else if (event is ToolCallDelta) {
+              final draft = toolBuffers.putIfAbsent(
+                event.index,
+                _ToolDraft.new,
+              );
+              if (event.id != null) draft.id = event.id!;
+              if (event.name != null) draft.name = event.name!;
+              if (event.arguments != null)
+                draft.arguments.write(event.arguments!);
+            } else if (event is ToolResultDelta) {
+              final draft = toolBuffers.putIfAbsent(
+                event.index,
+                _ToolDraft.new,
+              );
+              draft.id = event.id ?? draft.id;
+              draft.name = event.name ?? draft.name;
+              draft.result = event.result;
+            } else if (event is StreamFinished) {
+              for (final draft in toolBuffers.values) {
+                if (draft.name == null) continue;
+                assistant.toolCalls.add(
+                  ToolCallRecord(
+                    id: draft.id ?? uuid.v4(),
+                    name: draft.name!,
+                    arguments: draft.arguments.toString(),
+                    result: draft.result,
+                    status: draft.result?.contains('\"ok\":false') == true
+                        ? 'failed'
+                        : 'success',
+                  ),
+                );
+              }
+              assistant.model = event.model ?? settings.model;
+              assistant.responseId = event.responseId;
+              assistant.tokens = (event.usage?['total_tokens'] as num?)
+                  ?.toInt();
+              assistant.usage = event.usage;
+              assistant.latencyMs = DateTime.now()
+                  .difference(started)
+                  .inMilliseconds;
+              setState(() => thinking = false);
+              await LocalDbBridge.saveMessage(assistant);
+              await _speak(assistant.content);
+            } else if (event is StreamError) {
+              assistant.isError = true;
+              assistant.content += assistant.content.isEmpty
+                  ? event.message
+                  : '\n\n${event.message}';
+              setState(() => thinking = false);
+              await LocalDbBridge.saveMessage(assistant);
+            }
+            if (mounted) {
+              setState(() {});
+              _scrollToBottom();
+            }
+          },
+          onDone: () {
+            if (mounted) setState(() => thinking = false);
+          },
         );
-      } else if (event is AttachmentDelta) {
-        assistant.attachments.add(event.attachment);
-      } else if (event is ToolCallDelta) {
-        final draft = toolBuffers.putIfAbsent(event.index, _ToolDraft.new);
-        if (event.id != null) draft.id = event.id!;
-        if (event.name != null) draft.name = event.name!;
-        if (event.arguments != null) draft.arguments.write(event.arguments!);
-      } else if (event is ToolResultDelta) {
-        final draft = toolBuffers.putIfAbsent(event.index, _ToolDraft.new);
-        draft.id = event.id ?? draft.id;
-        draft.name = event.name ?? draft.name;
-        draft.result = event.result;
-      } else if (event is StreamFinished) {
-        for (final draft in toolBuffers.values) {
-          if (draft.name == null) continue;
-          assistant.toolCalls.add(
-            ToolCallRecord(
-              id: draft.id ?? uuid.v4(),
-              name: draft.name!,
-              arguments: draft.arguments.toString(),
-              result: draft.result,
-              status: draft.result?.contains('\"ok\":false') == true ? 'failed' : 'success',
-            ),
-          );
-        }
-        assistant.model = event.model ?? settings.model;
-        assistant.responseId = event.responseId;
-        assistant.tokens = (event.usage?['total_tokens'] as num?)?.toInt();
-        assistant.usage = event.usage;
-        assistant.latencyMs = DateTime.now().difference(started).inMilliseconds;
-        setState(() => thinking = false);
-        await LocalDbBridge.saveMessage(assistant);
-        await _speak(assistant.content);
-      } else if (event is StreamError) {
-        assistant.isError = true;
-        assistant.content += assistant.content.isEmpty ? event.message : '\n\n${event.message}';
-        setState(() => thinking = false);
-        await LocalDbBridge.saveMessage(assistant);
-      }
-      if (mounted) {
-        setState(() {});
-        _scrollToBottom();
-      }
-    }, onDone: () {
-      if (mounted) setState(() => thinking = false);
-    });
   }
 
   void _applySlash(String cmd) {
@@ -258,7 +279,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Commands: /search, /image, /model, /new')),
+          const SnackBar(
+            content: Text('Commands: /search, /image, /model, /new'),
+          ),
         );
     }
   }
@@ -293,8 +316,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> camera() async {
-    final attachment = await CystemServices.instance.attachmentService.captureCamera();
-    if (attachment != null && mounted) setState(() => attachments.add(attachment));
+    final attachment = await CystemServices.instance.attachmentService
+        .captureCamera();
+    if (attachment != null && mounted)
+      setState(() => attachments.add(attachment));
   }
 
   Future<void> toggleMic() async {
@@ -339,12 +364,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('REPLY DETAILS', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+              Text(
+                'REPLY DETAILS',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 18),
               _DetailRow('Model', message.model ?? 'Unknown'),
               _DetailRow('Response ID', message.responseId ?? '—'),
               _DetailRow('Tokens', message.tokens?.toString() ?? '—'),
-              _DetailRow('Latency', message.latencyMs == null ? '—' : '${message.latencyMs} ms'),
+              _DetailRow(
+                'Latency',
+                message.latencyMs == null ? '—' : '${message.latencyMs} ms',
+              ),
               _DetailRow('Sources', message.sources.length.toString()),
               _DetailRow('Tool calls', message.toolCalls.length.toString()),
             ],
@@ -385,26 +419,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           SafeArea(
             child: Column(
               children: [
-                _TopBar(onMenu: () => widget.hostScaffoldKey.currentState?.openDrawer()),
+                _TopBar(
+                  onMenu: () =>
+                      widget.hostScaffoldKey.currentState?.openDrawer(),
+                ),
                 Expanded(
                   child: messages.isEmpty
-                      ? _EmptyState(onPrompt: (prompt) {
-                          text.text = prompt;
-                          send();
-                        })
+                      ? _EmptyState(
+                          onPrompt: (prompt) {
+                            text.text = prompt;
+                            send();
+                          },
+                        )
                       : ListView.builder(
                           controller: scroll,
-                          padding: EdgeInsets.fromLTRB(width > 700 ? 80 : 14, 10, width > 700 ? 80 : 14, 150),
+                          padding: EdgeInsets.fromLTRB(
+                            width > 700 ? 80 : 14,
+                            10,
+                            width > 700 ? 80 : 14,
+                            150,
+                          ),
                           itemCount: messages.length,
                           itemBuilder: (_, i) {
                             final message = messages[i];
                             return _MessageCard(
                               message: message,
-                              streaming: thinking && i == messages.length - 1 && message.role == MessageRole.assistant,
+                              streaming:
+                                  thinking &&
+                                  i == messages.length - 1 &&
+                                  message.role == MessageRole.assistant,
                               onSpeak: () => _speak(message.content),
-                              onCopy: () => CystemServices.instance.android.shareText(message.content),
+                              onCopy: () => CystemServices.instance.android
+                                  .shareText(message.content),
                               onDetails: () => _showDetails(message),
-                              onEdit: message.role == MessageRole.user ? () => _editAndResend(message) : null,
+                              onEdit: message.role == MessageRole.user
+                                  ? () => _editAndResend(message)
+                                  : null,
                             );
                           },
                         ),
@@ -412,7 +462,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 if (attachments.isNotEmpty)
                   _AttachmentStrip(
                     attachments: attachments,
-                    onRemove: (attachment) => setState(() => attachments.remove(attachment)),
+                    onRemove: (attachment) =>
+                        setState(() => attachments.remove(attachment)),
                   ),
                 _Composer(
                   text: text,
@@ -452,14 +503,19 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            Expanded(child: Text(label)),
-            Text(value, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(child: Text(label)),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _TopBar extends StatelessWidget {
@@ -468,37 +524,62 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Row(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: onMenu,
+          icon: const Icon(Icons.menu_rounded),
+          tooltip: 'Open sessions',
+        ),
+        const SizedBox(width: 4),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(onPressed: onMenu, icon: const Icon(Icons.menu_rounded), tooltip: 'Open sessions'),
-            const SizedBox(width: 4),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('CYSTEM', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 3)),
-                Text('PERSONAL OS • ONLINE', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary, letterSpacing: 1.1)),
-              ],
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                color: Theme.of(context).colorScheme.primary.withOpacity(.10),
-                border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(.25)),
+            Text(
+              'CYSTEM',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 3,
               ),
-              child: Row(
-                children: [
-                  Container(width: 7, height: 7, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
-                  const SizedBox(width: 7),
-                  Text('CORE READY', style: Theme.of(context).textTheme.labelSmall),
-                ],
+            ),
+            Text(
+              'PERSONAL OS • ONLINE',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                letterSpacing: 1.1,
               ),
             ),
           ],
         ),
-      );
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            color: Theme.of(context).colorScheme.primary.withOpacity(.10),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.primary.withOpacity(.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text('CORE READY', style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Backdrop extends StatelessWidget {
@@ -507,8 +588,8 @@ class _Backdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
-        child: CustomPaint(painter: _GridPainter(accent), size: Size.infinite),
-      );
+    child: CustomPaint(painter: _GridPainter(accent), size: Size.infinite),
+  );
 }
 
 class _GridPainter extends CustomPainter {
@@ -530,7 +611,8 @@ class _GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GridPainter oldDelegate) => oldDelegate.accent != accent;
+  bool shouldRepaint(covariant _GridPainter oldDelegate) =>
+      oldDelegate.accent != accent;
 }
 
 class _EmptyState extends StatelessWidget {
@@ -539,37 +621,67 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(colors: [Theme.of(context).colorScheme.primary.withOpacity(.35), Colors.transparent]),
-                ),
-                child: Icon(Icons.hub_rounded, size: 42, color: Theme.of(context).colorScheme.primary),
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary.withOpacity(.35),
+                  Colors.transparent,
+                ],
               ),
-              const SizedBox(height: 18),
-              Text('SYSTEM ONLINE', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
-              const SizedBox(height: 8),
-              Text('Ask, attach, search, command. CYSTEM routes the work and returns the result.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: ['Explain something deeply', 'Search the latest AI news', 'Analyze this image', 'Plan my week']
-                    .map((prompt) => ActionChip(label: Text(prompt), onPressed: () => onPrompt(prompt)))
-                    .toList(),
-              ),
-            ],
+            ),
+            child: Icon(
+              Icons.hub_rounded,
+              size: 42,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 18),
+          Text(
+            'SYSTEM ONLINE',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ask, attach, search, command. CYSTEM routes the work and returns the result.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children:
+                [
+                      'Explain something deeply',
+                      'Search the latest AI news',
+                      'Analyze this image',
+                      'Plan my week',
+                    ]
+                    .map(
+                      (prompt) => ActionChip(
+                        label: Text(prompt),
+                        onPressed: () => onPrompt(prompt),
+                      ),
+                    )
+                    .toList(),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _MessageCard extends StatelessWidget {
@@ -601,25 +713,61 @@ class _MessageCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            color: mine ? scheme.primary.withOpacity(.16) : scheme.surface.withOpacity(.68),
-            border: Border.all(color: mine ? scheme.primary.withOpacity(.24) : scheme.outlineVariant.withOpacity(.25)),
-            boxShadow: [BoxShadow(color: scheme.primary.withOpacity(mine ? .05 : .025), blurRadius: 24)],
+            color: mine
+                ? scheme.primary.withOpacity(.16)
+                : scheme.surface.withOpacity(.68),
+            border: Border.all(
+              color: mine
+                  ? scheme.primary.withOpacity(.24)
+                  : scheme.outlineVariant.withOpacity(.25),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withOpacity(mine ? .05 : .025),
+                blurRadius: 24,
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(mine ? Icons.person_outline : Icons.memory_rounded, size: 16),
+                  Icon(
+                    mine ? Icons.person_outline : Icons.memory_rounded,
+                    size: 16,
+                  ),
                   const SizedBox(width: 7),
-                  Text(mine ? 'YOU' : 'CYSTEM', style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.3, fontWeight: FontWeight.w800)),
+                  Text(
+                    mine ? 'YOU' : 'CYSTEM',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      letterSpacing: 1.3,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const Spacer(),
                   if (mine && onEdit != null)
-                    IconButton(tooltip: 'Edit and resend', onPressed: onEdit, icon: const Icon(Icons.edit_outlined, size: 18)),
+                    IconButton(
+                      tooltip: 'Edit and resend',
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                    ),
                   if (!mine) ...[
-                    IconButton(tooltip: 'Read aloud', onPressed: onSpeak, icon: const Icon(Icons.volume_up_outlined, size: 18)),
-                    IconButton(tooltip: 'Copy/share', onPressed: onCopy, icon: const Icon(Icons.copy_all_outlined, size: 18)),
-                    IconButton(tooltip: 'Reply details', onPressed: onDetails, icon: const Icon(Icons.info_outline, size: 18)),
+                    IconButton(
+                      tooltip: 'Read aloud',
+                      onPressed: onSpeak,
+                      icon: const Icon(Icons.volume_up_outlined, size: 18),
+                    ),
+                    IconButton(
+                      tooltip: 'Copy/share',
+                      onPressed: onCopy,
+                      icon: const Icon(Icons.copy_all_outlined, size: 18),
+                    ),
+                    IconButton(
+                      tooltip: 'Reply details',
+                      onPressed: onDetails,
+                      icon: const Icon(Icons.info_outline, size: 18),
+                    ),
                   ],
                 ],
               ),
@@ -629,7 +777,12 @@ class _MessageCard extends StatelessWidget {
                   title: const Text('REASONING'),
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: const EdgeInsets.only(bottom: 8),
-                  children: [SelectableText(message.reasoning, style: Theme.of(context).textTheme.bodySmall)],
+                  children: [
+                    SelectableText(
+                      message.reasoning,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               if (message.toolCalls.isNotEmpty && !mine) ...[
                 for (final tool in message.toolCalls) _ToolCallCard(tool: tool),
@@ -638,12 +791,16 @@ class _MessageCard extends StatelessWidget {
               if (message.attachments.isNotEmpty)
                 _AttachmentStrip(attachments: message.attachments),
               MarkdownBody(
-                data: '${message.content.isEmpty ? '…' : message.content}${streaming ? ' ▌' : ''}',
+                data:
+                    '${message.content.isEmpty ? '…' : message.content}${streaming ? ' ▌' : ''}',
                 selectable: true,
-                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                  p: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
-                  code: const TextStyle(fontFamily: 'monospace'),
-                ),
+                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                    .copyWith(
+                      p: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(height: 1.5),
+                      code: const TextStyle(fontFamily: 'monospace'),
+                    ),
               ),
               if (message.sources.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -653,17 +810,30 @@ class _MessageCard extends StatelessWidget {
                   children: message.sources
                       .where((source) => source.url.isNotEmpty)
                       .take(8)
-                      .map((source) => InputChip(
-                            label: Text(source.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                            onPressed: () => CystemServices.instance.android.openUrl(source.url),
-                          ))
+                      .map(
+                        (source) => InputChip(
+                          label: Text(
+                            source.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onPressed: () => CystemServices.instance.android
+                              .openUrl(source.url),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
               if (message.isError)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: Text('REQUEST ERROR', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.error, letterSpacing: 1.2)),
+                  child: Text(
+                    'REQUEST ERROR',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.error,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -691,13 +861,48 @@ class _ToolCallCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [Icon(Icons.build_circle_outlined, size: 16, color: scheme.primary), const SizedBox(width: 7), Expanded(child: Text(tool.name)), Text(tool.status.toUpperCase(), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.primary))]),
+          Row(
+            children: [
+              Icon(
+                Icons.build_circle_outlined,
+                size: 16,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 7),
+              Expanded(child: Text(tool.name)),
+              Text(
+                tool.status.toUpperCase(),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: scheme.primary),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
-          Text(tool.arguments, maxLines: 4, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
+          Text(
+            tool.arguments,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+          ),
           if (tool.result != null) ...[
             const SizedBox(height: 6),
-            Text('RESULT', style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.0)),
-            Text(tool.result!, maxLines: 5, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
+            Text(
+              'RESULT',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(letterSpacing: 1.0),
+            ),
+            Text(
+              tool.result!,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+            ),
           ],
         ],
       ),
@@ -712,43 +917,69 @@ class _AttachmentStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 74,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          itemCount: attachments.length,
-          itemBuilder: (context, i) {
-            final attachment = attachments[i];
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 120,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(.55)),
-                  child: Row(
-                    children: [
-                      if (attachment.mimeType.startsWith('image/'))
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(7),
-                          child: Image.file(File(attachment.path), width: 28, height: 28, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, size: 20)),
-                        )
-                      else
-                        const Icon(Icons.insert_drive_file_outlined, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(attachment.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall)),
-                    ],
+    height: 74,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      itemCount: attachments.length,
+      itemBuilder: (context, i) {
+        final attachment = attachments[i];
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 120,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withOpacity(.55),
+              ),
+              child: Row(
+                children: [
+                  if (attachment.mimeType.startsWith('image/'))
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.file(
+                        File(attachment.path),
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.broken_image_outlined, size: 20),
+                      ),
+                    )
+                  else
+                    const Icon(Icons.insert_drive_file_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      attachment.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
                   ),
+                ],
+              ),
+            ),
+            if (onRemove != null)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: IconButton(
+                  onPressed: () => onRemove!(attachment),
+                  icon: const Icon(Icons.cancel, size: 18),
+                  tooltip: 'Remove attachment',
                 ),
-                if (onRemove != null)
-                  Positioned(right: -4, top: -4, child: IconButton(onPressed: () => onRemove!(attachment), icon: const Icon(Icons.cancel, size: 18), tooltip: 'Remove attachment')),
-              ],
-            );
-          },
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-        ),
-      );
-
+              ),
+          ],
+        );
+      },
+      separatorBuilder: (_, __) => const SizedBox(width: 8),
+    ),
+  );
 }
 
 class _Composer extends StatelessWidget {
@@ -786,19 +1017,44 @@ class _Composer extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
-      decoration: BoxDecoration(color: scheme.surface.withOpacity(.90), border: Border(top: BorderSide(color: scheme.outlineVariant.withOpacity(.25)))),
+      decoration: BoxDecoration(
+        color: scheme.surface.withOpacity(.90),
+        border: Border(
+          top: BorderSide(color: scheme.outlineVariant.withOpacity(.25)),
+        ),
+      ),
       child: SafeArea(
         top: false,
         child: Column(
           children: [
             Row(
               children: [
-                IconButton(tooltip: 'Files', onPressed: onFiles, icon: const Icon(Icons.attach_file)),
-                IconButton(tooltip: 'Camera', onPressed: onCamera, icon: const Icon(Icons.photo_camera_outlined)),
-                IconButton(tooltip: 'Voice input', onPressed: onMic, icon: Icon(listening ? Icons.mic : Icons.mic_none)),
-                FilterChip(selected: forceWeb, onSelected: (_) => onWeb(), label: const Text('/search')),
+                IconButton(
+                  tooltip: 'Files',
+                  onPressed: onFiles,
+                  icon: const Icon(Icons.attach_file),
+                ),
+                IconButton(
+                  tooltip: 'Camera',
+                  onPressed: onCamera,
+                  icon: const Icon(Icons.photo_camera_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Voice input',
+                  onPressed: onMic,
+                  icon: Icon(listening ? Icons.mic : Icons.mic_none),
+                ),
+                FilterChip(
+                  selected: forceWeb,
+                  onSelected: (_) => onWeb(),
+                  label: const Text('/search'),
+                ),
                 const SizedBox(width: 4),
-                FilterChip(selected: forceImage, onSelected: (_) => onImage(), label: const Text('/image')),
+                FilterChip(
+                  selected: forceImage,
+                  onSelected: (_) => onImage(),
+                  label: const Text('/image'),
+                ),
                 const Spacer(),
                 if (listening) const _Waveform(),
                 if (speaking) Icon(Icons.volume_up, color: scheme.primary),
@@ -814,15 +1070,25 @@ class _Composer extends StatelessWidget {
                     maxLines: 6,
                     textInputAction: TextInputAction.newline,
                     onSubmitted: (_) => thinking ? null : onSend(),
-                    decoration: const InputDecoration(hintText: 'Command the system…'),
+                    decoration: const InputDecoration(
+                      hintText: 'Command the system…',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
                   child: thinking
-                      ? IconButton.filled(onPressed: onStop, tooltip: 'Stop generation', icon: const Icon(Icons.stop_rounded))
-                      : IconButton.filled(onPressed: onSend, tooltip: 'Send', icon: const Icon(Icons.arrow_upward_rounded)),
+                      ? IconButton.filled(
+                          onPressed: onStop,
+                          tooltip: 'Stop generation',
+                          icon: const Icon(Icons.stop_rounded),
+                        )
+                      : IconButton.filled(
+                          onPressed: onSend,
+                          tooltip: 'Send',
+                          icon: const Icon(Icons.arrow_upward_rounded),
+                        ),
                 ),
               ],
             ),
@@ -840,8 +1106,12 @@ class _Waveform extends StatefulWidget {
   State<_Waveform> createState() => _WaveformState();
 }
 
-class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixin {
-  late final AnimationController controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 650))..repeat();
+class _WaveformState extends State<_Waveform>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 650),
+  )..repeat();
 
   @override
   void dispose() {
@@ -851,26 +1121,38 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 42,
-        height: 22,
-        child: AnimatedBuilder(
-          animation: controller,
-          builder: (context, _) => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: List.generate(5, (index) {
-              final phase = (controller.value + index * .16) % 1;
-              final height = 6 + 14 * (0.5 + 0.5 * (1 - (phase - .5).abs() * 2));
-              return Container(width: 4, height: height, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(4)));
-            }),
-          ),
-        ),
-      );
+    width: 42,
+    height: 22,
+    child: AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(5, (index) {
+          final phase = (controller.value + index * .16) % 1;
+          final height = 6 + 14 * (0.5 + 0.5 * (1 - (phase - .5).abs() * 2));
+          return Container(
+            width: 4,
+            height: height,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        }),
+      ),
+    ),
+  );
 }
 
 class LocalDbBridge {
   static Future<Map<String, Object?>?> chatRows(String id) async {
-    final rows = await LocalDb.instance.db.query('chats', where: 'id=?', whereArgs: [id], limit: 1);
+    final rows = await LocalDb.instance.db.query(
+      'chats',
+      where: 'id=?',
+      whereArgs: [id],
+      limit: 1,
+    );
     return rows.isEmpty ? null : rows.first;
   }
 
@@ -886,37 +1168,34 @@ class LocalDbBridge {
 
   static Future<void> saveMessage(ChatMessage message) async {
     await LocalDb.instance.db.transaction((txn) async {
-      await txn.insert(
-        'messages',
-        {
-          'id': message.id,
-          'chat_id': message.chatId,
-          'role': message.role.name,
-          'content': message.content,
-          'created_at': message.createdAt.millisecondsSinceEpoch,
-          'payload': message.dbJson(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await txn.insert('messages', {
+        'id': message.id,
+        'chat_id': message.chatId,
+        'role': message.role.name,
+        'content': message.content,
+        'created_at': message.createdAt.millisecondsSinceEpoch,
+        'payload': message.dbJson(),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
       for (final attachment in message.attachments) {
-        await txn.insert(
-          'attachments',
-          {
-            'id': attachment.id,
-            'chat_id': message.chatId,
-            'message_id': message.id,
-            'path': attachment.path,
-            'name': attachment.name,
-            'mime': attachment.mimeType,
-            'size': attachment.size,
-            'source_url': attachment.sourceUrl,
-            'source_title': attachment.sourceTitle,
-            'created_at': message.createdAt.millisecondsSinceEpoch,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        await txn.insert('attachments', {
+          'id': attachment.id,
+          'chat_id': message.chatId,
+          'message_id': message.id,
+          'path': attachment.path,
+          'name': attachment.name,
+          'mime': attachment.mimeType,
+          'size': attachment.size,
+          'source_url': attachment.sourceUrl,
+          'source_title': attachment.sourceTitle,
+          'created_at': message.createdAt.millisecondsSinceEpoch,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
-      await txn.update('chats', {'updated_at': DateTime.now().millisecondsSinceEpoch}, where: 'id=?', whereArgs: [message.chatId]);
+      await txn.update(
+        'chats',
+        {'updated_at': DateTime.now().millisecondsSinceEpoch},
+        where: 'id=?',
+        whereArgs: [message.chatId],
+      );
     });
   }
 
