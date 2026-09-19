@@ -6,9 +6,7 @@ class SecureStore {
   static const _nvidia = 'cystem.nvidia.key';
   static const _gemini = 'cystem.gemini.key';
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<String?> readNvidia() => _storage.read(key: _nvidia);
   Future<String?> readGemini() => _storage.read(key: _gemini);

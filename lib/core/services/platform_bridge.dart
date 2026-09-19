@@ -70,7 +70,7 @@ class BiometricService {
     try {
       final available = await auth.isDeviceSupported();
       if (!available) return true;
-      return auth.authenticate(localizedReason: 'Unlock CYSTEM');
+      return await auth.authenticate(localizedReason: 'Unlock CYSTEM');
     } catch (_) {
       return false;
     }
