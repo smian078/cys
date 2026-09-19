@@ -10,7 +10,8 @@ class BootOverlay extends StatefulWidget {
   State<BootOverlay> createState() => _BootOverlayState();
 }
 
-class _BootOverlayState extends State<BootOverlay> with SingleTickerProviderStateMixin {
+class _BootOverlayState extends State<BootOverlay>
+    with SingleTickerProviderStateMixin {
   late final AnimationController controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1500),
@@ -40,9 +41,9 @@ class _BootOverlayState extends State<BootOverlay> with SingleTickerProviderStat
                     Text(
                       'CYSTEM',
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 8,
-                          ),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 8,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
