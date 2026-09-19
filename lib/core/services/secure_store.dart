@@ -12,8 +12,10 @@ class SecureStore {
 
   Future<String?> readNvidia() => _storage.read(key: _nvidia);
   Future<String?> readGemini() => _storage.read(key: _gemini);
-  Future<void> saveNvidia(String value) => _storage.write(key: _nvidia, value: value.trim());
-  Future<void> saveGemini(String value) => _storage.write(key: _gemini, value: value.trim());
+  Future<void> saveNvidia(String value) =>
+      _storage.write(key: _nvidia, value: value.trim());
+  Future<void> saveGemini(String value) =>
+      _storage.write(key: _gemini, value: value.trim());
   Future<void> deleteNvidia() => _storage.delete(key: _nvidia);
   Future<void> deleteGemini() => _storage.delete(key: _gemini);
 }

@@ -22,10 +22,13 @@ class BackupCodec {
 
   Map<String, dynamic> decode(String raw) {
     final data = jsonDecode(raw);
-    if (data is! Map<String, dynamic>) throw const FormatException('Backup root must be a JSON object.');
-    if (data['version'] != 1) throw const FormatException('Unsupported backup version.');
+    if (data is! Map<String, dynamic>)
+      throw const FormatException('Backup root must be a JSON object.');
+    if (data['version'] != 1)
+      throw const FormatException('Unsupported backup version.');
     for (final key in const ['chats', 'messages', 'memories', 'attachments']) {
-      if (data[key] is! List) throw FormatException('Backup field "$key" must be an array.');
+      if (data[key] is! List)
+        throw FormatException('Backup field "$key" must be an array.');
     }
     return data;
   }
