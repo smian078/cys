@@ -12,9 +12,8 @@ class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => _SettingsBody(
-        controller: ref.watch(settingsProvider),
-      );
+  Widget build(BuildContext context, WidgetRef ref) =>
+      _SettingsBody(controller: ref.watch(settingsProvider));
 }
 
 class _SettingsBody extends StatefulWidget {
@@ -72,12 +71,17 @@ class _SettingsBodyState extends State<_SettingsBody> {
                 labelText: 'NVIDIA API key',
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => showNvidia = !showNvidia),
-                  icon: Icon(showNvidia ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(
+                    showNvidia ? Icons.visibility_off : Icons.visibility,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            TextField(controller: base, decoration: const InputDecoration(labelText: 'NVIDIA base URL')),
+            TextField(
+              controller: base,
+              decoration: const InputDecoration(labelText: 'NVIDIA base URL'),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: gemini,
@@ -86,12 +90,17 @@ class _SettingsBodyState extends State<_SettingsBody> {
                 labelText: 'Gemini API key',
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => showGemini = !showGemini),
-                  icon: Icon(showGemini ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(
+                    showGemini ? Icons.visibility_off : Icons.visibility,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            Text('Keys stay on this device in encrypted secure storage.', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              'Keys stay on this device in encrypted secure storage.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             Row(
               children: [
                 Expanded(
@@ -100,10 +109,16 @@ class _SettingsBodyState extends State<_SettingsBody> {
                       await SecureStore.instance.saveNvidia(nvidia.text);
                       await SecureStore.instance.saveGemini(gemini.text);
                       controller.updateNvidiaBaseUrl(
-                        base.text.trim().isEmpty ? 'https://integrate.api.nvidia.com/v1' : base.text.trim(),
+                        base.text.trim().isEmpty
+                            ? 'https://integrate.api.nvidia.com/v1'
+                            : base.text.trim(),
                       );
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Provider settings saved locally.')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Provider settings saved locally.'),
+                          ),
+                        );
                       }
                     },
                     child: const Text('SAVE PROVIDERS'),
@@ -115,10 +130,11 @@ class _SettingsBodyState extends State<_SettingsBody> {
                     onPressed: () async {
                       await SecureStore.instance.deleteNvidia();
                       await SecureStore.instance.deleteGemini();
-                      if (mounted) setState(() {
-                        nvidia.clear();
-                        gemini.clear();
-                      });
+                      if (mounted)
+                        setState(() {
+                          nvidia.clear();
+                          gemini.clear();
+                        });
                     },
                     child: const Text('REMOVE KEYS'),
                   ),
@@ -131,8 +147,14 @@ class _SettingsBodyState extends State<_SettingsBody> {
               initialValue: controller.model,
               decoration: const InputDecoration(labelText: 'Main model'),
               items: const [
-                DropdownMenuItem(value: ModelIds.nemotronSuper, child: Text('Nemotron 3 Super')),
-                DropdownMenuItem(value: ModelIds.nemotronUltra, child: Text('Nemotron 3 Ultra')),
+                DropdownMenuItem(
+                  value: ModelIds.nemotronSuper,
+                  child: Text('Nemotron 3 Super'),
+                ),
+                DropdownMenuItem(
+                  value: ModelIds.nemotronUltra,
+                  child: Text('Nemotron 3 Ultra'),
+                ),
               ],
               onChanged: (value) {
                 if (value != null) controller.updateModel(value);
@@ -162,7 +184,10 @@ class _SettingsBodyState extends State<_SettingsBody> {
             TextField(
               controller: instructions,
               maxLines: 6,
-              decoration: const InputDecoration(labelText: 'Custom system instructions', alignLabelWithHint: true),
+              decoration: const InputDecoration(
+                labelText: 'Custom system instructions',
+                alignLabelWithHint: true,
+              ),
               onChanged: controller.updateSystemInstructions,
             ),
             SwitchListTile(
@@ -188,7 +213,10 @@ class _SettingsBodyState extends State<_SettingsBody> {
               initialValue: controller.themeMode,
               decoration: const InputDecoration(labelText: 'Theme'),
               items: const [
-                DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
+                DropdownMenuItem(
+                  value: ThemeMode.system,
+                  child: Text('System'),
+                ),
                 DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
                 DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
               ],
@@ -197,7 +225,10 @@ class _SettingsBodyState extends State<_SettingsBody> {
               },
             ),
             const SizedBox(height: 12),
-            _AccentPicker(value: controller.accent, onChanged: controller.updateAccent),
+            _AccentPicker(
+              value: controller.accent,
+              onChanged: controller.updateAccent,
+            ),
           ]),
         ],
       ),
@@ -210,9 +241,20 @@ class _SettingsBodyState extends State<_SettingsBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w800)),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              letterSpacing: 2,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 10),
-          Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(children: children))),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(children: children),
+            ),
+          ),
         ],
       ),
     );
@@ -250,13 +292,25 @@ class _MemorySectionState extends State<_MemorySection> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: key, decoration: const InputDecoration(labelText: 'Fact / preference')),
-            TextField(controller: value, decoration: const InputDecoration(labelText: 'Value')),
+            TextField(
+              controller: key,
+              decoration: const InputDecoration(labelText: 'Fact / preference'),
+            ),
+            TextField(
+              controller: value,
+              decoration: const InputDecoration(labelText: 'Value'),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -285,13 +339,25 @@ class _MemorySectionState extends State<_MemorySection> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: key, decoration: const InputDecoration(labelText: 'Fact / preference')),
-            TextField(controller: value, decoration: const InputDecoration(labelText: 'Value')),
+            TextField(
+              controller: key,
+              decoration: const InputDecoration(labelText: 'Fact / preference'),
+            ),
+            TextField(
+              controller: value,
+              decoration: const InputDecoration(labelText: 'Value'),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -300,7 +366,12 @@ class _MemorySectionState extends State<_MemorySection> {
     key.dispose();
     value.dispose();
     if (ok == true && keyText.isNotEmpty) {
-      await LocalDb.instance.upsertMemory(const Uuid().v4(), keyText, valueText, true);
+      await LocalDb.instance.upsertMemory(
+        const Uuid().v4(),
+        keyText,
+        valueText,
+        true,
+      );
       await _load();
     }
   }
@@ -312,7 +383,13 @@ class _MemorySectionState extends State<_MemorySection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('MEMORY', style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w800)),
+          Text(
+            'MEMORY',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              letterSpacing: 2,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 10),
           Card(
             child: Column(
@@ -325,20 +402,31 @@ class _MemorySectionState extends State<_MemorySection> {
                     leading: Switch(
                       value: (row['enabled'] as int? ?? 0) == 1,
                       onChanged: (value) async {
-                        await LocalDb.instance.upsertMemory(row['id'] as String, row['key'] as String, row['value'] as String, value);
+                        await LocalDb.instance.upsertMemory(
+                          row['id'] as String,
+                          row['key'] as String,
+                          row['value'] as String,
+                          value,
+                        );
                         await _load();
                       },
                     ),
                     trailing: IconButton(
                       tooltip: 'Delete memory',
                       onPressed: () async {
-                        await LocalDb.instance.deleteMemory(row['id'] as String);
+                        await LocalDb.instance.deleteMemory(
+                          row['id'] as String,
+                        );
                         await _load();
                       },
                       icon: const Icon(Icons.delete_outline),
                     ),
                   ),
-                ListTile(leading: const Icon(Icons.add), title: const Text('Add memory'), onTap: _add),
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('Add memory'),
+                  onTap: _add,
+                ),
               ],
             ),
           ),
@@ -377,7 +465,9 @@ class _AccentPicker extends StatelessWidget {
                   color: color,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: value.value == color.value ? Colors.white : Colors.transparent,
+                    color: value.value == color.value
+                        ? Colors.white
+                        : Colors.transparent,
                     width: 2,
                   ),
                 ),
