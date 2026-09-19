@@ -90,7 +90,7 @@ class _BootPainter extends CustomPainter {
     final rayPaint = Paint()..color = Colors.white.withOpacity(.20);
     for (var i = 0; i < 12; i++) {
       final angle = i * pi / 6 + t * pi;
-      final radius = 50 + i * 22;
+      final radius = 50.0 + i * 22;
       canvas.drawLine(
         center,
         center + Offset(cos(angle), sin(angle)) * radius,

@@ -147,11 +147,11 @@ class _SystemDrawerState extends ConsumerState<SystemDrawer> {
   }
 
   Future<void> _import() async {
-    final result = await FilePicker.platform.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
-    final path = result?.files.single.path;
+    final path = file?.path;
     if (path == null) return;
     try {
       final raw = await File(path).readAsString();
