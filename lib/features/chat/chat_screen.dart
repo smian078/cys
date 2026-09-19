@@ -205,8 +205,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               );
               if (event.id != null) draft.id = event.id!;
               if (event.name != null) draft.name = event.name!;
-              if (event.arguments != null)
+              if (event.arguments != null) {
                 draft.arguments.write(event.arguments!);
+              }
             } else if (event is ToolResultDelta) {
               final draft = toolBuffers.putIfAbsent(
                 event.index,
@@ -224,7 +225,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     name: draft.name!,
                     arguments: draft.arguments.toString(),
                     result: draft.result,
-                    status: draft.result?.contains('\"ok\":false') == true
+                    status: draft.result?.contains('"ok":false') == true
                         ? 'failed'
                         : 'success',
                   ),
@@ -318,8 +319,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> camera() async {
     final attachment = await CystemServices.instance.attachmentService
         .captureCamera();
-    if (attachment != null && mounted)
+    if (attachment != null && mounted) {
       setState(() => attachments.add(attachment));
+    }
   }
 
   Future<void> toggleMic() async {
@@ -557,9 +559,11 @@ class _TopBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
-            color: Theme.of(context).colorScheme.primary.withOpacity(.10),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: .10),
             border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withOpacity(.25),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: .25),
             ),
           ),
           child: Row(
@@ -601,7 +605,7 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = .5
-      ..color = accent.withOpacity(.07);
+      ..color = accent.withValues(alpha: .07);
     for (var x = 0.0; x < size.width; x += 32) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
@@ -633,7 +637,7 @@ class _EmptyState extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(.35),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: .35),
                   Colors.transparent,
                 ],
               ),
@@ -714,16 +718,16 @@ class _MessageCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             color: mine
-                ? scheme.primary.withOpacity(.16)
-                : scheme.surface.withOpacity(.68),
+                ? scheme.primary.withValues(alpha: .16)
+                : scheme.surface.withValues(alpha: .68),
             border: Border.all(
               color: mine
-                  ? scheme.primary.withOpacity(.24)
-                  : scheme.outlineVariant.withOpacity(.25),
+                  ? scheme.primary.withValues(alpha: .24)
+                  : scheme.outlineVariant.withValues(alpha: .25),
             ),
             boxShadow: [
               BoxShadow(
-                color: scheme.primary.withOpacity(mine ? .05 : .025),
+                color: scheme.primary.withValues(alpha: mine ? .05 : .025),
                 blurRadius: 24,
               ),
             ],
@@ -855,8 +859,8 @@ class _ToolCallCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: scheme.surfaceContainerHighest.withOpacity(.5),
-        border: Border.all(color: scheme.primary.withOpacity(.18)),
+        color: scheme.surfaceContainerHighest.withValues(alpha: .5),
+        border: Border.all(color: scheme.primary.withValues(alpha: .18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,7 +938,7 @@ class _AttachmentStrip extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 color: Theme.of(
                   context,
-                ).colorScheme.surfaceContainerHighest.withOpacity(.55),
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: .55),
               ),
               child: Row(
                 children: [
@@ -946,7 +950,7 @@ class _AttachmentStrip extends StatelessWidget {
                         width: 28,
                         height: 28,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             const Icon(Icons.broken_image_outlined, size: 20),
                       ),
                     )
@@ -977,7 +981,7 @@ class _AttachmentStrip extends StatelessWidget {
           ],
         );
       },
-      separatorBuilder: (_, __) => const SizedBox(width: 8),
+      separatorBuilder: (_, _) => const SizedBox(width: 8),
     ),
   );
 }
@@ -1018,9 +1022,9 @@ class _Composer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
       decoration: BoxDecoration(
-        color: scheme.surface.withOpacity(.90),
+        color: scheme.surface.withValues(alpha: .90),
         border: Border(
-          top: BorderSide(color: scheme.outlineVariant.withOpacity(.25)),
+          top: BorderSide(color: scheme.outlineVariant.withValues(alpha: .25)),
         ),
       ),
       child: SafeArea(
