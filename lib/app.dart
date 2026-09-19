@@ -34,7 +34,8 @@ class CystemShell extends ConsumerStatefulWidget {
   ConsumerState<CystemShell> createState() => _CystemShellState();
 }
 
-class _CystemShellState extends ConsumerState<CystemShell> with WidgetsBindingObserver {
+class _CystemShellState extends ConsumerState<CystemShell>
+    with WidgetsBindingObserver {
   bool locked = false;
   bool booting = true;
   final rootScaffoldKey = GlobalKey<ScaffoldState>();
@@ -57,7 +58,8 @@ class _CystemShellState extends ConsumerState<CystemShell> with WidgetsBindingOb
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final enabled = ref.read(settingsProvider).biometricLock;
-    if (state == AppLifecycleState.paused && enabled) setState(() => locked = true);
+    if (state == AppLifecycleState.paused && enabled)
+      setState(() => locked = true);
     if (state == AppLifecycleState.resumed && locked && enabled) _unlock();
   }
 
@@ -89,26 +91,32 @@ class _LockScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Center(
-            child: FilledButton.icon(
-              onPressed: onUnlock,
-              icon: const Icon(Icons.fingerprint),
-              label: const Text('UNLOCK CYSTEM'),
-            ),
-          ),
+    color: Theme.of(context).scaffoldBackgroundColor,
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+      child: Center(
+        child: FilledButton.icon(
+          onPressed: onUnlock,
+          icon: const Icon(Icons.fingerprint),
+          label: const Text('UNLOCK CYSTEM'),
         ),
-      );
+      ),
+    ),
+  );
 }
 
-final settingsProvider = ChangeNotifierProvider<SettingsController>((ref) => SettingsController());
+final settingsProvider = ChangeNotifierProvider<SettingsController>(
+  (ref) => SettingsController(),
+);
 final currentChatIdProvider = StateProvider<String?>((ref) => null);
-final platformServiceProvider = Provider<BiometricService>((ref) => BiometricService());
+final platformServiceProvider = Provider<BiometricService>(
+  (ref) => BiometricService(),
+);
 
 class SettingsController extends ChangeNotifier {
-  SettingsController() { _load(); }
+  SettingsController() {
+    _load();
+  }
   ThemeMode themeMode = ThemeMode.dark;
   Color accent = const Color(0xFF7C5CFF);
   bool biometricLock = false;
@@ -118,7 +126,6 @@ class SettingsController extends ChangeNotifier {
   String model = 'nvidia/nemotron-3-super-120b-a12b';
   String reasoningEffort = 'low';
   int? seed;
-
 
   Future<void> _load() async {
     final p = await SharedPreferences.getInstance();
@@ -144,17 +151,63 @@ class SettingsController extends ChangeNotifier {
     await p.setString('nvidiaBaseUrl', nvidiaBaseUrl);
     await p.setString('model', model);
     await p.setString('reasoningEffort', reasoningEffort);
-    if (seed == null) await p.remove('seed'); else await p.setInt('seed', seed!);
+    if (seed == null)
+      await p.remove('seed');
+    else
+      await p.setInt('seed', seed!);
   }
 
-  void updateTheme(ThemeMode mode) { themeMode = mode; notifyListeners(); _save(); }
-  void updateAccent(Color value) { accent = value; notifyListeners(); _save(); }
-  void updateSystemInstructions(String value) { systemInstructions = value; notifyListeners(); _save(); }
-  void updateMemory(bool value) { memoryEnabled = value; notifyListeners(); _save(); }
-  void updateBiometric(bool value) { biometricLock = value; notifyListeners(); _save(); }
-  void updateModel(String value) { model = value; notifyListeners(); _save(); }
-  void updateReasoning(String value) { reasoningEffort = value; notifyListeners(); _save(); }
-  void updateSeed(int? value) { seed = value; notifyListeners(); _save(); }
-  void updateNvidiaBaseUrl(String value) { nvidiaBaseUrl = value; notifyListeners(); _save(); }
-}
+  void updateTheme(ThemeMode mode) {
+    themeMode = mode;
+    notifyListeners();
+    _save();
+  }
 
+  void updateAccent(Color value) {
+    accent = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateSystemInstructions(String value) {
+    systemInstructions = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateMemory(bool value) {
+    memoryEnabled = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateBiometric(bool value) {
+    biometricLock = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateModel(String value) {
+    model = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateReasoning(String value) {
+    reasoningEffort = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateSeed(int? value) {
+    seed = value;
+    notifyListeners();
+    _save();
+  }
+
+  void updateNvidiaBaseUrl(String value) {
+    nvidiaBaseUrl = value;
+    notifyListeners();
+    _save();
+  }
+}
